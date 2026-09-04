@@ -1,3 +1,45 @@
-ai-travel-agent/node_modules/
-ai-travel-agent/opentable-mcp/node_modules/
-ai-travel-agent/opentable-mcp/
+# ---------------------------------------------------------------------------
+# This repo's working tree is the HOME DIRECTORY, and its origin is PUBLIC
+# (yg674-dev/yueminggao.github.io-).
+#
+# A denylist is the wrong shape here: every new dotfile, credential store,
+# download, and document that lands in ~ would need a rule written for it in
+# advance, and a single miss publishes it. So this file ignores everything at
+# the top level and opts projects in one at a time.
+#
+#   To start tracking a new project:   add   !/my-project/   under ALLOWED.
+#   To see what is being ignored:      git status --ignored
+# ---------------------------------------------------------------------------
+
+# Ignore every top-level entry by default.
+/*
+
+# --- repo metadata ---------------------------------------------------------
+!/.gitignore
+!/README.md
+
+# --- ALLOWED: tracked projects ---------------------------------------------
+!/ai-persona-chat/
+!/ai-travel-agent/
+!/specs/
+!/tiktok-gov-dashboard/
+
+# --- exclusions inside allowed projects ------------------------------------
+/ai-travel-agent/node_modules/
+/ai-travel-agent/opentable-mcp/
+/ai-travel-agent/opentable-mcp/node_modules/
+
+# --- never track these, wherever they appear -------------------------------
+**/node_modules/
+**/.env
+**/.env.*
+!**/.env.example
+**/*.pem
+**/*.key
+**/*.p12
+**/id_rsa*
+**/id_ed25519*
+**/credentials
+**/.DS_Store
+**/~$*
+**/*.log
