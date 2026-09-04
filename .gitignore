@@ -19,7 +19,7 @@
 !/README.md
 
 # --- ALLOWED: tracked projects ---------------------------------------------
-!/ai-persona-chat/
+# (ai-persona-chat now lives in its own repo: yg674-dev/ai-persona-chat)
 !/ai-travel-agent/
 !/specs/
 !/tiktok-gov-dashboard/
