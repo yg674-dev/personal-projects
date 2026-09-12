@@ -2,7 +2,7 @@
 
 An AI-powered travel itinerary builder with Yelp restaurant discovery and reservations.
 
-**Live demo:** https://yg674-dev.github.io/yueminggao.github.io-/ai-travel-agent/
+**Live demo:** https://yg674-dev.github.io/personal-projects/ai-travel-agent/
 
 ---
 
@@ -43,8 +43,8 @@ Create a free app at https://www.yelp.com/developers/v3/manage_app — this star
 ### 2. Clone and configure
 
 ```bash
-git clone https://github.com/yg674-dev/yueminggao.github.io-.git
-cd yueminggao.github.io-/ai-travel-agent
+git clone https://github.com/yg674-dev/personal-projects.git
+cd personal-projects/ai-travel-agent
 
 cp .env.example .env
 # Open .env and paste your YELP_API_KEY
