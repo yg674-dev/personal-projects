@@ -23,6 +23,7 @@
 !/ai-travel-agent/
 !/specs/
 !/tiktok-gov-dashboard/
+!/robot-vacuum-prototype/
 
 # --- exclusions inside allowed projects ------------------------------------
 /ai-travel-agent/node_modules/

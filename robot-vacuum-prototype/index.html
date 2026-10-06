@@ -1,0 +1,703 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Robot Vacuum Prototype</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@500;600;700;800&family=IBM+Plex+Mono:wght@500&display=swap">
+<style>
+:root{
+  --ground:#F3F4F6; --bezel:#111827; --screen:#FFFFFF; --card:#FFFFFF; --card-top:#F9FAFB; --ink:#111827; --muted:#6B7280;
+  --line:#E5E7EB; --accent:#FF9D00; --accent-hi:#FFD21E; --accent-soft:#FFF6DB; --accent-text:#A15C00;
+  --btn:#FFD21E; --btn-ink:#111827; --good:#15803D; --good-soft:#DCFCE7; --warn:#C2410C; --warn-soft:#FFEDD5;
+  --danger:#DC2626; --danger-soft:#FEE2E2; --floor:#F3F4F6; --floor-on:#FFFFFF; --wall:#9CA3AF; --trail:#FF9D00;
+  --display:"Fredoka","Nunito",ui-rounded,system-ui,sans-serif; --body:"Nunito",ui-rounded,system-ui,sans-serif;
+  --outline:#111827; --pop:3px 3px 0 var(--outline); --dots:#E5E7EB;
+  --mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+  --grad:linear-gradient(to bottom,var(--card-top),var(--card));
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){color-scheme:dark;
+  --ground:#0B0F19; --bezel:#000000; --screen:#0B0F19; --card:#111827; --card-top:#1A2232; --ink:#F3F4F6; --muted:#9CA3AF;
+  --line:#1F2937; --accent:#FF9D00; --accent-hi:#FFD21E; --accent-soft:#2B2110; --accent-text:#FFC34D;
+  --btn:#FFD21E; --btn-ink:#111827; --outline:#000000; --dots:#1F2937; --good:#4ADE80; --good-soft:#0F2A1B; --warn:#FB923C; --warn-soft:#2E1A0C;
+  --danger:#F87171; --danger-soft:#2C1515; --floor:#1F2937; --floor-on:#172030; --wall:#4B5563; --trail:#FFB23F;}}
+:root[data-theme="dark"]{color-scheme:dark;
+  --ground:#0B0F19; --bezel:#000000; --screen:#0B0F19; --card:#111827; --card-top:#1A2232; --ink:#F3F4F6; --muted:#9CA3AF;
+  --line:#1F2937; --accent:#FF9D00; --accent-hi:#FFD21E; --accent-soft:#2B2110; --accent-text:#FFC34D;
+  --btn:#FFD21E; --btn-ink:#111827; --outline:#000000; --dots:#1F2937; --good:#4ADE80; --good-soft:#0F2A1B; --warn:#FB923C; --warn-soft:#2E1A0C;
+  --danger:#F87171; --danger-soft:#2C1515; --floor:#1F2937; --floor-on:#172030; --wall:#4B5563; --trail:#FFB23F;}
+
+*{box-sizing:border-box}
+body{background:var(--ground);color:var(--ink);font-family:var(--body);font-size:14px;padding:24px 16px;}
+button{font:inherit;color:inherit;cursor:pointer}
+button:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.wrap{max-width:1040px;margin:0 auto;display:grid;grid-template-columns:minmax(0,380px) minmax(0,1fr);gap:48px;align-items:start}
+@media (max-width:820px){.wrap{grid-template-columns:1fr;gap:28px}.phone{margin:0 auto}}
+
+/* phone */
+.phone{position:sticky;top:24px;width:100%;max-width:380px;background:var(--bezel);border-radius:44px;padding:12px;box-shadow:0 30px 60px -30px rgba(0,0,0,.45)}
+.screen{position:relative;height:min(760px,calc(100vh - 72px));height:min(760px,calc(100dvh - 72px));min-height:540px;background:var(--screen);border-radius:33px;overflow:hidden;display:flex;flex-direction:column}
+.sbar{display:flex;justify-content:space-between;padding:10px 24px 2px;font-size:12px;font-weight:600;font-variant-numeric:tabular-nums}
+.view{flex:1;min-height:0;overflow-y:auto;display:flex;flex-direction:column}
+.bar{display:flex;align-items:center;gap:6px;padding:4px 12px 6px}
+.bar h1{font-family:var(--display);font-weight:800;font-size:20px;margin:0;text-wrap:balance}
+.back{border:0;background:none;width:36px;height:36px;border-radius:50%;font-size:26px;line-height:1;display:grid;place-items:center;color:var(--ink)}
+.back:hover{background:var(--line)}
+.body{padding:0 16px 12px;display:flex;flex-direction:column;gap:10px;flex:1;min-height:0}
+.foot{padding:10px 16px 16px;display:flex;flex-direction:column;gap:8px;background:var(--screen);border-top:1px solid var(--line)}
+.hint{color:var(--muted);font-size:13px;margin:0;line-height:1.45}
+.eyebrow{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600;margin:0}
+
+.btn{border:0;border-radius:10px;padding:12px 16px;font-weight:700;font-size:15px;background:var(--btn);color:var(--btn-ink);width:100%}
+.btn:not(:disabled):hover{filter:brightness(1.12)}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.btn.ghost{background:var(--grad);color:var(--ink);border:1px solid var(--line)}
+.btn.danger{background:var(--danger);color:#fff}
+.row{display:flex;gap:8px}.row>*{flex:1}
+
+/* home */
+.greet{font-family:var(--display);font-size:26px;font-weight:800;margin:4px 0 0;line-height:1.1}
+.devices{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.dev{background:var(--grad);border:1px solid var(--line);border-radius:12px;padding:12px;text-align:left;display:flex;flex-direction:column;gap:8px;min-height:104px}
+.dev.hero{grid-column:1/-1;flex-direction:row;align-items:center;gap:14px;min-height:0;border-color:var(--accent-hi);background:linear-gradient(to bottom,var(--accent-soft),var(--card))}
+.dev .ico{width:40px;height:40px;border-radius:8px;background:var(--floor);display:grid;place-items:center;flex:none}
+.dev.hero .ico{background:var(--accent-hi);color:#111827;width:52px;height:52px}
+.dev b{display:block;font-size:15px}
+.dev small{color:var(--muted);font-size:12.5px;display:flex;align-items:center;gap:6px;margin-top:2px}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--good);flex:none}
+.dot.off{background:var(--wall)}
+.chev{margin-left:auto;color:var(--muted);font-size:22px}
+
+/* device */
+.batt{display:flex;align-items:center;gap:8px;font-family:var(--mono);font-size:13px}
+.battbar{width:34px;height:15px;border:1.5px solid var(--ink);border-radius:4px;padding:1.5px;position:relative}
+.battbar::after{content:"";position:absolute;right:-4px;top:4px;width:2px;height:5px;background:var(--ink);border-radius:0 1px 1px 0}
+.battbar i{display:block;height:100%;border-radius:1.5px;background:var(--good)}
+.battbar.low i{background:var(--danger)}
+.hero-robot{flex:1 1 0;min-height:80px;display:flex;justify-content:center}
+.hero-robot svg{width:100%;height:100%;max-height:170px}
+.spin{transform-origin:center;transform-box:fill-box;animation:spin 1.2s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.state{font-family:var(--display);font-size:24px;font-weight:800;text-align:center;margin:0;text-wrap:balance}
+.state-sub{text-align:center;color:var(--muted);margin:-8px 0 0;font-size:13px}
+.facts{display:grid;grid-template-columns:repeat(3,1fr);background:var(--grad);border:1px solid var(--line);border-radius:12px}
+.facts div{padding:9px 10px;display:flex;flex-direction:column;gap:3px}
+.facts div+div{border-left:1px solid var(--line)}
+.facts span{font-size:11px;color:var(--muted)}
+.facts b{font-size:13.5px;font-variant-numeric:tabular-nums}
+
+/* mode */
+.opt{display:flex;align-items:center;gap:12px;text-align:left;background:var(--grad);border:1.5px solid var(--line);border-radius:12px;padding:12px}
+.opt[aria-checked="true"]{border-color:var(--accent);background:var(--accent-soft)}
+.opt b{display:block;font-size:15px}
+.opt small{display:block;color:var(--muted);font-size:12.5px;margin-top:2px;line-height:1.35}
+.opt .est{margin-left:auto;font-family:var(--mono);font-size:12px;color:var(--muted);white-space:nowrap}
+.radio{width:20px;height:20px;border-radius:50%;border:2px solid var(--wall);flex:none;display:grid;place-items:center}
+.opt[aria-checked="true"] .radio{border-color:var(--accent)}
+.opt[aria-checked="true"] .radio::after{content:"";width:10px;height:10px;border-radius:50%;background:var(--accent)}
+
+/* map */
+.map{background:var(--grad);border:1px solid var(--line);border-radius:12px;padding:8px;flex:1 1 0;min-height:110px;display:flex}
+.map svg{width:100%;height:100%;display:block}
+.map .room{fill:var(--floor);stroke:var(--wall);stroke-width:2}
+.map .room.on{fill:var(--floor-on)}
+.map .room.pick{cursor:pointer}
+.map .room.sel{fill:var(--accent-soft);stroke:var(--accent);stroke-width:2.5}
+.map .room.out{fill:url(#hatch)}
+.map .hatch-line{stroke:var(--line);stroke-width:3}
+.map text{font-family:var(--body);font-size:10.5px;fill:var(--muted);font-weight:600;pointer-events:none}
+.map .room.sel + text{fill:var(--accent-text)}
+.map .trail{fill:none;stroke:var(--trail);stroke-opacity:.35;stroke-linecap:round;stroke-linejoin:round}
+.map .ghost{fill:none;stroke:var(--wall);stroke-opacity:.35;stroke-width:1;stroke-dasharray:2 3}
+.map .bot-body{fill:var(--accent-hi);stroke:#111827;stroke-width:2}
+.map .bot-eye{fill:#111827}
+.map .pulse{fill:none;stroke:var(--accent);stroke-width:1.5;transform-origin:center;transform-box:fill-box;animation:pulse 1.6s ease-out infinite}
+@keyframes pulse{from{opacity:.8;transform:scale(.6)}to{opacity:0;transform:scale(1.8)}}
+.map .dock{fill:var(--ink)}
+.map .spot{fill:var(--accent);fill-opacity:.18;stroke:var(--accent);stroke-width:1.5;stroke-dasharray:3 2}
+.map .haz{fill:var(--warn-soft);stroke:var(--warn);stroke-width:1.5}
+.map .keepout{fill:var(--danger-soft);fill-opacity:.8;stroke:var(--danger);stroke-width:1.2;stroke-dasharray:3 2}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{border:1px solid var(--line);background:var(--grad);border-radius:999px;padding:6px 11px;font-size:12.5px;font-weight:600}
+.chip[aria-pressed="true"]{background:var(--accent-hi);border-color:var(--accent-hi);color:#111827}
+.chip.link{background:none;border-style:dashed;color:var(--muted)}
+
+/* review */
+.sum{background:var(--grad);border:1px solid var(--line);border-radius:12px}
+.sum>div{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:8px 14px}
+.sum>div+div{border-top:1px solid var(--line)}
+.sum span{color:var(--muted);font-size:13px}
+.sum b{font-size:14px;text-align:right;font-variant-numeric:tabular-nums}
+.sum .edit{border:0;background:none;color:var(--accent-text);font-weight:600;font-size:12.5px;padding:0 0 0 8px}
+.seg{display:grid;grid-template-columns:repeat(3,1fr);background:var(--floor);border-radius:10px;padding:3px;gap:3px}
+.seg button{border:0;background:none;border-radius:7px;padding:8px 4px;font-weight:600;font-size:13px;color:var(--muted)}
+.seg button[aria-pressed="true"]{background:var(--card);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.12)}
+.meter{height:10px;border-radius:5px;background:var(--floor);position:relative;overflow:hidden}
+.meter i{position:absolute;inset:0 auto 0 0;background:linear-gradient(90deg,var(--accent-hi),var(--accent));border-radius:5px}
+.meter i.need{background:var(--ink);opacity:.3}
+.note{border-radius:10px;padding:9px 12px;font-size:12.5px;line-height:1.4}
+.note.warn{background:var(--warn-soft);color:var(--warn)}
+.note.bad{background:var(--danger-soft);color:var(--danger)}
+.note.good{background:var(--good-soft);color:var(--good)}
+.note b{display:block;margin-bottom:2px}
+
+/* cleaning */
+.pill{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:700;padding:5px 10px;border-radius:999px;background:var(--accent-soft);color:var(--accent-text);margin-left:auto}
+.pill.paused,.pill.awaiting{background:var(--warn-soft);color:var(--warn)}
+.pill.returning{background:var(--floor);color:var(--ink)}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.stat{background:var(--grad);border:1px solid var(--line);border-radius:10px;padding:8px 10px}
+.stat span{font-size:11px;color:var(--muted);display:block}
+.stat b{font-family:var(--mono);font-size:17px;font-weight:500;font-variant-numeric:tabular-nums}
+.stat em{font-style:normal;font-size:11px;color:var(--muted);margin-left:2px}
+.prog{display:flex;flex-direction:column;gap:6px}
+.prog-top{display:flex;justify-content:space-between;font-size:12.5px;color:var(--muted)}
+.prog-top b{color:var(--ink);font-weight:600}
+.ctrls{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.ctrl{border:1px solid var(--line);background:var(--grad);border-radius:12px;padding:9px 6px 8px;display:flex;flex-direction:column;align-items:center;gap:6px;font-size:12.5px;font-weight:600}
+.ctrl:disabled{opacity:.4;cursor:not-allowed}
+.ctrl .ci{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;background:var(--floor)}
+.ctrl.primary .ci{background:var(--accent-hi);color:#111827}
+.ctrl.stop .ci{color:var(--danger)}
+
+/* overlays */
+.scrim{position:absolute;inset:0;background:rgba(11,15,25,.5);display:flex;align-items:flex-end;z-index:5}
+.sheet{background:var(--screen);width:100%;border-radius:24px 24px 0 0;padding:20px 18px 26px;display:flex;flex-direction:column;gap:12px}
+.sheet h2{font-family:var(--display);font-size:20px;margin:0;text-wrap:balance}
+.sheet p{margin:0;color:var(--muted);line-height:1.45}
+.banner{position:absolute;left:10px;right:10px;top:40px;z-index:4;background:var(--ink);color:var(--screen);border:0;border-left:4px solid var(--accent-hi);border-radius:12px;padding:12px 14px;display:flex;gap:10px;align-items:center;text-align:left;font-size:13px;box-shadow:0 10px 24px -8px rgba(0,0,0,.4)}
+.banner b{display:block}
+.toast{position:absolute;left:50%;bottom:96px;transform:translateX(-50%);background:var(--ink);color:var(--screen);padding:10px 14px;border-radius:12px;font-size:13px;width:max-content;max-width:86%;text-align:center;z-index:6;opacity:0;transition:opacity .2s;pointer-events:none}
+.toast.show{opacity:1}
+
+/* complete */
+.done-head{display:flex;align-items:center;gap:12px}
+.done-head p{margin:2px 0 0}
+.done-ico{flex:none;width:44px;height:44px;border-radius:50%;display:grid;place-items:center;background:var(--good-soft);color:var(--good)}
+.done-ico.part{background:var(--warn-soft);color:var(--warn)}
+.done-head h2{font-family:var(--display);font-weight:800;font-size:21px;margin:0;line-height:1.1}
+.rooms-list{display:flex;flex-direction:column;background:var(--card);border:1px solid var(--line);border-radius:16px}
+.rooms-list div{display:flex;justify-content:space-between;padding:10px 14px;font-size:13.5px}
+.rooms-list div+div{border-top:1px solid var(--line)}
+.ok{color:var(--good);font-weight:600}.part{color:var(--warn);font-weight:600}
+.chip.rc{font-size:12px;padding:5px 10px}
+
+/* side panel */
+.panel{display:flex;flex-direction:column;gap:24px;padding-top:8px;max-width:60ch}
+.panel h1{font-family:var(--display);font-weight:800;letter-spacing:-.01em;font-size:clamp(28px,4vw,40px);line-height:1.05;margin:0;text-wrap:balance}
+.panel .lede{color:var(--muted);line-height:1.55;margin:8px 0 0;font-size:15px}
+.flow{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
+.flow li{display:grid;grid-template-columns:64px 1fr auto;gap:10px;align-items:baseline;padding:9px 0;border-top:1px solid var(--line);color:var(--muted)}
+.flow li .fr{font-family:var(--mono);font-size:11.5px}
+.flow li b{font-weight:600;color:var(--ink)}
+.flow li .tag{font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase}
+.flow li .tag.new{color:var(--accent-text)}
+.flow li .tag.merged{color:var(--warn)}
+.flow li.cur{color:var(--ink)}
+.flow li.cur .fr{color:var(--accent-text)}
+.flow li.cur b::before{content:"→ ";color:var(--accent)}
+.flow li.cur{background:linear-gradient(90deg,var(--accent-soft),transparent)}
+.flow li.skip b{text-decoration:line-through;text-decoration-color:var(--wall);color:var(--muted)}
+.notes{background:var(--grad);border:1px solid var(--line);border-radius:12px;padding:18px 20px;display:flex;flex-direction:column;gap:10px}
+.notes h2{font-family:var(--display);font-size:19px;margin:0}
+.notes ul{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px;line-height:1.5}
+.notes .from{color:var(--muted);font-size:13px;margin:0;line-height:1.5}
+.tools{display:flex;gap:8px;flex-wrap:wrap}
+.tools button{border:1px solid var(--line);background:var(--card);border-radius:10px;padding:8px 12px;font-weight:600;font-size:13px}
+
+@media (prefers-reduced-motion:reduce){.spin,.map .pulse{animation:none}.toast{transition:none}}
+/* ===== cartoon layer ===== */
+:root[data-theme="dark"] .phone, .phone{border-radius:48px}
+.screen{background-color:var(--screen);background-image:radial-gradient(var(--dots) 1.2px,transparent 1.4px);background-size:14px 14px}
+.foot{background:var(--screen);border-top:2.5px dashed var(--line)}
+.dev,.opt,.map,.stat,.ctrl,.facts,.sum,.notes,.btn,.note,.seg,.tools button{border:2.5px solid var(--outline)!important;box-shadow:var(--pop);border-radius:18px}
+.chip{border:2px solid var(--outline);box-shadow:2px 2px 0 var(--outline)}
+.chip.link{box-shadow:none}
+.btn{border-radius:16px;font-family:var(--display);font-weight:600;font-size:16px;letter-spacing:.01em}
+.btn.ghost{background:var(--card)}
+.btn.danger{background:#FF6B6B;color:#111827}
+.dev,.opt,.btn,.ctrl,.chip,.tools button,.seg button{transition:transform .08s,box-shadow .08s}
+:is(.dev,.opt,.btn,.ctrl,.tools button):not(:disabled):active{transform:translate(2px,2px);box-shadow:1px 1px 0 var(--outline)}
+:is(.dev,.opt,.ctrl):not(:disabled):hover{transform:translate(-1px,-1px);box-shadow:4px 4px 0 var(--outline)}
+.btn:disabled,.ctrl:disabled{box-shadow:none}
+.dev.hero{background:var(--accent-hi);color:#111827}
+.dev.hero small{color:#3b3b3b}
+.dev.hero .battbar,.dev.hero .battbar::after{border-color:#111827}.dev.hero .battbar::after{background:#111827}
+.dev.hero .ico{background:#fff;border:2px solid #111827;border-radius:50%}
+.dev .ico{border-radius:14px;font-size:24px;background:var(--accent-soft)}
+.emo{font-size:22px;line-height:1;display:inline-block}
+.dev:hover .emo,.opt:hover .emo{animation:wiggle .5s ease-in-out}
+@keyframes wiggle{25%{transform:rotate(-12deg)}75%{transform:rotate(12deg)}}
+.opt .emo{width:42px;height:42px;border-radius:50%;display:grid;place-items:center;background:var(--accent-soft);border:2px solid var(--outline);flex:none}
+.opt[aria-checked="true"]{background:var(--accent-hi);color:#111827}
+.opt[aria-checked="true"] small,.opt[aria-checked="true"] .est{color:#3b3b3b}
+.opt[aria-checked="true"] .emo{background:#fff}
+.radio{border-color:var(--outline)}
+.opt[aria-checked="true"] .radio{border-color:#111827;background:#fff}
+.opt[aria-checked="true"] .radio::after{background:#111827}
+.bar h1,.greet,.state,.done-head h2,.sheet h2,.panel h1,.notes h2{font-family:var(--display);font-weight:700}
+.back{border:2px solid var(--outline);width:34px;height:34px;font-size:22px;background:var(--card);box-shadow:2px 2px 0 var(--outline)}
+.pill{border:2px solid var(--outline);background:var(--accent-hi);color:#111827}
+.pill.paused,.pill.awaiting{background:#FFB4A2;color:#111827}
+.pill.returning{background:#BDE0FE;color:#111827}
+.ctrl .ci{font-size:20px;background:var(--accent-soft);border:2px solid var(--outline)}
+.ctrl.primary .ci{background:var(--accent-hi)}
+.ctrl.stop .ci{background:#FFD6D6}
+.stat span,.facts span{font-weight:700}
+.stat b{font-family:var(--display);font-weight:600;font-size:20px}
+.meter{height:14px;border-radius:8px;border:2px solid var(--outline)}
+.meter i{border-radius:6px}
+.note.good{background:#C9F7D7;color:#14532D}
+.note.warn{background:#FFE6B8;color:#7C2D12}
+.note.bad{background:#FFD6D6;color:#7F1D1D}
+.seg{background:var(--card);padding:4px}
+.seg button[aria-pressed="true"]{background:var(--accent-hi);color:#111827;box-shadow:none;border:2px solid #111827}
+.map .room{stroke:var(--outline);stroke-width:2.5}
+.map .room.sel{fill:var(--accent-hi);stroke:var(--outline);stroke-width:3}
+.map .room.sel + text,.map .room.sel + text + text{fill:#111827}
+.map .remo{font-size:20px}
+.map .trail{stroke-opacity:.45}
+.map .face-eye{fill:#111827}
+.map .bot-body{fill:var(--accent-hi);stroke:#111827;stroke-width:2}
+.hero-robot svg{max-height:180px;filter:drop-shadow(4px 4px 0 var(--outline))}
+.bob{animation:bob 2.4s ease-in-out infinite;transform-origin:center;transform-box:fill-box}
+@keyframes bob{50%{transform:translateY(-4px)}}
+.zzz{font-family:var(--display);font-weight:700;fill:var(--muted);animation:zzz 2.4s ease-in-out infinite}
+@keyframes zzz{0%{opacity:0;transform:translate(0,4px)}40%{opacity:1}100%{opacity:0;transform:translate(6px,-10px)}}
+.done-ico{width:56px;height:56px;font-size:34px;background:var(--accent-hi);border:2.5px solid var(--outline);box-shadow:var(--pop)}
+.done-ico.part{background:#FFE6B8}
+.big-emo{font-size:52px;line-height:1;text-align:center;animation:wiggle 1s ease-in-out 2}
+.banner{border:2.5px solid #000;border-left-width:2.5px;box-shadow:3px 3px 0 #000;background:var(--accent-hi);color:#111827}
+.sheet{border-top:2.5px solid var(--outline)}
+.toast{border:2px solid var(--outline);background:var(--accent-hi);color:#111827;font-weight:700;box-shadow:var(--pop)}
+.confetti{position:absolute;inset:0;pointer-events:none;overflow:hidden;z-index:7}
+.confetti span{position:absolute;top:-30px;font-size:22px;animation:fall 2.2s ease-in forwards}
+@keyframes fall{to{transform:translateY(820px) rotate(540deg);opacity:.2}}
+.flow li.cur{background:var(--accent-hi);color:#111827;border-radius:10px}
+.flow li.cur .fr,.flow li.cur b,.flow li.cur .tag{color:#111827}
+.flow li{padding-inline:8px}
+.notes{background:var(--card)}
+.tools button{background:var(--card)}
+.modes{gap:8px}
+.modes .opt{padding:8px 10px;gap:10px;border-radius:16px}
+.modes .opt b{font-size:14.5px}
+.modes .opt small{font-size:12px;margin-top:0;line-height:1.25}
+.modes .opt .emo{width:34px;height:34px;font-size:18px}
+.modes .opt .est{font-size:11px}
+.modes .radio{width:18px;height:18px}
+.modes .hint{font-size:12px}
+@media (prefers-reduced-motion:reduce){.bob,.zzz,.big-emo,.confetti span,.dev:hover .emo,.opt:hover .emo{animation:none}.confetti{display:none}}
+</style>
+
+<div class="wrap">
+  <div class="phone"><div class="screen" id="screen">
+    <div class="sbar"><span id="clock">9:41</span><span>📶 🔋</span></div>
+    <div class="view" id="view"></div>
+    <div id="overlay"></div>
+    <div class="toast" id="toast" role="status"></div>
+  </div></div>
+
+  <aside class="panel">
+    <div>
+      <p class="eyebrow">Storyboard → clickable prototype</p>
+      <h1>Robot vacuum app 🤖🧹</h1>
+      <p class="lede">Built from the 8-frame hand-drawn storyboard. Every button works. The robot moves on the map, the battery drains and recharges, and the robot asks you what to do if it finds something fragile.</p>
+    </div>
+    <div>
+      <p class="eyebrow" style="margin-bottom:8px">Flow (you are here)</p>
+      <ol class="flow" id="flow"></ol>
+    </div>
+    <div class="notes" id="notes"></div>
+    <div class="tools">
+      <button data-action="reset">Restart prototype</button>
+      <button data-action="drain">Set battery to 25% (test the battery check)</button>
+    </div>
+  </aside>
+</div>
+
+<script>
+const ROOMS=[
+  {id:'living',emoji:'🛋️',name:'Living room',x:110,y:12,w:178,h:118,m2:26,lx:199,ly:74},
+  {id:'bed',emoji:'🛏️',name:'Bedroom',x:12,y:12,w:98,h:118,m2:14,lx:61,ly:74},
+  {id:'kitchen',emoji:'🍳',name:'Kitchen',x:12,y:130,w:158,h:118,m2:18,lx:91,ly:192},
+  {id:'office',emoji:'💻',name:'Office',x:170,y:130,w:118,h:118,m2:12,lx:229,ly:192},
+];
+const room=id=>ROOMS.find(r=>r.id===id);
+const MODES={
+  quick:{emoji:'⚡',name:'Quick clean',desc:'Every room, one fast pass',rate:2.6,spacing:22,area:null},
+  full:{emoji:'✨',name:'Full clean',desc:'Every room, edges and a dense pass',rate:1.5,spacing:12,area:null},
+  room:{emoji:'🚪',name:'Room clean',desc:'Only the rooms you pick',rate:1.5,spacing:12,area:'rooms'},
+  spot:{emoji:'🎯',name:'Spot clean',desc:'A 1.5 m circle around one spill',rate:0,spacing:6,area:'spot'},
+};
+const SUCTION={eco:{label:'🌱 Eco',time:1,batt:.6},standard:{label:'🧹 Standard',time:1,batt:1},max:{label:'💪 Max',time:1.15,batt:1.6}};
+const DOCK={x:200,y:22}, SIM=1.6, BATT_PER_MIN=.9, RESERVE=5;
+
+const fresh=()=>({screen:'home',battery:80,robot:'docked',pos:{...DOCK},mode:null,rooms:[],spot:null,suction:'standard',run:null,lastRun:null,stopConfirm:false});
+let S=fresh();
+
+/* ---------- planning ---------- */
+function plan(){
+  const m=MODES[S.mode]; if(!m) return null;
+  const s=SUCTION[S.suction];
+  const rooms=m.area==='rooms'?S.rooms:m.area==='spot'?(S.spot?[S.spot.room]:[]):ROOMS.map(r=>r.id);
+  const m2=m.area==='spot'?2:rooms.reduce((a,id)=>a+room(id).m2,0);
+  const est=Math.max(1,Math.round(m.area==='spot'?6*s.time:m2/m.rate*s.time));
+  const need=Math.ceil(est*BATT_PER_MIN*s.batt)+RESERVE;
+  return {rooms,m2,est,need,ok:need<=Math.floor(S.battery)};
+}
+function estFor(id){const m=MODES[id];if(m.area==='spot')return 6;const all=ROOMS.reduce((a,r)=>a+r.m2,0);return m.area==='rooms'?null:Math.round(all/m.rate)}
+
+function buildPath(p){
+  const m=MODES[S.mode],pts=[{...S.pos}],roomOf=[null];
+  if(m.area==='spot'){
+    const c=S.spot; pts.push({x:c.x,y:c.y});roomOf.push(c.room);
+    for(let t=0;t<=6*Math.PI;t+=.35){const r=2+t*1.25;pts.push({x:c.x+r*Math.cos(t),y:c.y+r*Math.sin(t)});roomOf.push(c.room)}
+  }else{
+    const order=['living','bed','kitchen','office'].filter(id=>p.rooms.includes(id));
+    for(const id of order){const r=room(id),ins=8,x0=r.x+ins,x1=r.x+r.w-ins;let i=0;
+      for(let y=r.y+ins;y<=r.y+r.h-ins+.1;y+=m.spacing,i++){const a={x:i%2?x1:x0,y},b={x:i%2?x0:x1,y};pts.push(a,b);roomOf.push(id,id)}}
+  }
+  const lens=[0];for(let i=1;i<pts.length;i++)lens.push(lens[i-1]+Math.hypot(pts[i].x-pts[i-1].x,pts[i].y-pts[i-1].y));
+  return {pts,roomOf,lens,total:lens[lens.length-1]};
+}
+function idxAt(path,p){const L=p*path.total;let i=0;while(i<path.lens.length-2&&path.lens[i+1]<=L)i++;return i}
+function posAt(path,p){const i=idxAt(path,p),L=p*path.total,a=path.pts[i],b=path.pts[i+1]||a,seg=(path.lens[i+1]||path.lens[i])-path.lens[i],f=seg?(L-path.lens[i])/seg:0;return{x:a.x+(b.x-a.x)*f,y:a.y+(b.y-a.y)*f}}
+
+function startRun(){
+  const p=plan(),path=buildPath(p);let hazard=null;
+  if(MODES[S.mode].area!=='spot'&&p.rooms.includes('living')){
+    const idx=path.roomOf.map((r,i)=>r==='living'?i:-1).filter(i=>i>=0);const k=idx[Math.floor(idx.length*.55)];
+    hazard={at:path.lens[k]/path.total,x:Math.min(278,path.pts[k].x+14),y:path.pts[k].y,triggered:false,choice:null};
+  }
+  S.run={mode:S.mode,suction:S.suction,rooms:p.rooms,m2:p.m2,est:p.est,path,progress:0,battStart:S.battery,hazard,end:null};
+  S.robot='cleaning';S.stopConfirm=false;go('cleaning');toast('🧹 Cleaning started!');
+}
+function endRun(reason){
+  const r=S.run;if(!r)return;r.end=reason;r.battEnd=S.battery;S.lastRun=r;S.run=null;
+}
+
+/* ---------- simulation loop ---------- */
+let last=performance.now(),lastSec=-1;
+function tick(t){
+  const dt=Math.min(.1,(t-last)/1000);last=t;const prevRobot=S.robot;
+  if(S.robot==='docked'&&S.battery<100)S.battery=Math.min(100,S.battery+dt*.4);
+  const r=S.run;
+  if(S.robot==='cleaning'&&r){
+    const sim=dt*SIM;r.progress+=sim/r.est;S.battery-=sim*BATT_PER_MIN*SUCTION[r.suction].batt;
+    if(r.hazard&&!r.hazard.triggered&&r.progress>=r.hazard.at){r.progress=r.hazard.at;r.hazard.triggered=true;S.robot='awaiting'}
+    if(r.progress>=1){r.progress=1;r.finished=true;S.robot='returning';toast('🎉 All clean! Heading home')}
+    else if(S.battery<=RESERVE+1){r.lowBattery=true;S.robot='returning';toast('🪫 Battery low. Going to charge')}
+    S.pos=posAt(r.path,r.progress);
+  }
+  if(S.robot==='returning'){
+    const dx=DOCK.x-S.pos.x,dy=DOCK.y-S.pos.y,d=Math.hypot(dx,dy),step=dt*110;
+    S.battery=Math.max(0,S.battery-dt*.3);
+    if(d<=step){S.pos={...DOCK};S.robot='docked';
+      if(S.run){const reason=S.run.finished?'finished':S.run.lowBattery?'lowbattery':'returned';endRun(reason);
+        if(S.screen==='cleaning'){S.screen='complete';if(reason==='finished')setTimeout(confetti,50)}else toast(reason==='finished'?'Cleaning finished. Summary is on the vacuum page':'Robot is back on the dock')}
+      else toast('Robot is back on the dock');
+    }else S.pos={x:S.pos.x+dx/d*step,y:S.pos.y+dy/d*step};
+  }
+  if(S.robot!==prevRobot)render();else live();
+  requestAnimationFrame(tick);
+}
+
+/* ---------- small helpers ---------- */
+const pct=()=>Math.floor(S.battery);
+const fmtMin=m=>m<1?'<1':Math.floor(m);
+function statusText(){
+  const r=S.run;
+  switch(S.robot){
+    case 'docked':return S.battery<100?['Charging on dock',`Ready to clean${pct()<20?' at 20%':''}`]:['Ready to clean','On the dock, fully charged'];
+    case 'cleaning':{const id=r.path.roomOf[idxAt(r.path,r.progress)]||r.rooms[0];return [`Cleaning ${room(id).name.toLowerCase()}`,`${Math.round(r.progress*100)}% done · ${MODES[r.mode].name}`]}
+    case 'paused':return ['Paused',`${Math.round(r.progress*100)}% done. Resume when you're ready`];
+    case 'awaiting':return ['Needs your input','Stopped next to something fragile'];
+    case 'returning':return ['Returning to dock',r?.finished?'Cleaning finished':'Will charge on arrival'];
+    case 'idle':return ['Stopped',`Sitting in the ${(curRoomAt(S.pos)||{name:'room'}).name.toLowerCase()}, off the dock`];
+  }
+}
+function curRoomAt(p){return ROOMS.find(r=>p.x>=r.x&&p.x<=r.x+r.w&&p.y>=r.y&&p.y<=r.y+r.h)}
+function battHTML(){const p=pct();return `<span class="batt"><span class="battbar ${p<20?'low':''}"><i data-live="battw" style="width:${p}%"></i></span><span data-live="batt">${p}%</span>${S.robot==='docked'&&p<100?'<span aria-label="charging">⚡</span>':''}</span>`}
+const bar=(title,extra='')=>`<header class="bar"><button class="back" data-action="back" aria-label="Back">‹</button><h1>${title}</h1>${extra}</header>`;
+
+/* ---------- map ---------- */
+function mapSVG(o={}){
+  const r=o.run;let s=`<svg viewBox="0 0 300 260" id="${o.id||'map'}" role="img" aria-label="Floor plan"><defs><pattern id="hatch" width="7" height="7" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="7" height="7" fill="var(--floor)"/><line x1="0" y1="0" x2="0" y2="7" class="hatch-line"/></pattern></defs>`;
+  for(const rm of ROOMS){
+    let cls='room';
+    if(o.pick)cls+=' pick'+(o.selected?.includes(rm.id)?' sel':'');
+    else if(o.include)cls+=o.include.includes(rm.id)?' on':' out';
+    s+=`<rect class="${cls}" data-room="${rm.id}" x="${rm.x}" y="${rm.y}" width="${rm.w}" height="${rm.h}" rx="3" ${o.pick==='rooms'?`role="button" tabindex="0" aria-pressed="${!!o.selected?.includes(rm.id)}" aria-label="${rm.name}"`:''}/><text class="remo" x="${rm.lx}" y="${rm.ly-4}" text-anchor="middle">${rm.emoji}</text><text x="${rm.lx}" y="${rm.ly+14}" text-anchor="middle">${rm.name}</text>`;
+  }
+  // doors
+  s+=`<g stroke="var(--card)" stroke-width="3"><line x1="110" y1="95" x2="110" y2="115"/><line x1="130" y1="130" x2="150" y2="130"/><line x1="230" y1="130" x2="250" y2="130"/><line x1="170" y1="200" x2="170" y2="220"/></g>`;
+  if(o.ghost){s+=`<polyline class="ghost" points="${o.ghost.pts.slice(1).map(p=>p.x.toFixed(1)+','+p.y.toFixed(1)).join(' ')}"/>`}
+  if(r){const sw=MODES[r.mode].area==='spot'?7:MODES[r.mode].spacing-1;s+=`<polyline id="trail" class="trail" stroke-width="${sw}" points="${trailPts(r)}"/>`}
+  if(o.spot)s+=`<circle class="spot" cx="${o.spot.x}" cy="${o.spot.y}" r="24"/><circle cx="${o.spot.x}" cy="${o.spot.y}" r="2.5" fill="var(--accent-text)"/>`;
+  if(r?.hazard&&r.hazard.triggered){const h=r.hazard;
+    s+=h.choice==='avoid'?`<circle class="keepout" cx="${h.x}" cy="${h.y}" r="13"/>`:'';
+    if(h.choice!=='moved')s+=`<text x="${h.x}" y="${h.y+6}" text-anchor="middle" style="font-size:16px">🍷</text>`}
+  s+=`<g><rect x="${DOCK.x-11}" y="${DOCK.y-13}" width="22" height="7" rx="3" class="dock"/><text x="${DOCK.x+16}" y="${DOCK.y-4}" style="font-size:10px">⚡</text></g>`;
+  if(o.robot)s+=`<g id="bot" transform="translate(${S.pos.x},${S.pos.y})">${S.robot==='cleaning'?'<circle class="pulse" r="9"/>':''}<circle class="bot-body" r="9"/>${miniFace()}</g>`;
+  return s+'</svg>';
+}
+function trailPts(r){const i=idxAt(r.path,r.progress),p=posAt(r.path,r.progress);return r.path.pts.slice(0,i+1).concat([p]).map(q=>q.x.toFixed(1)+','+q.y.toFixed(1)).join(' ')}
+
+/* ---------- screens ---------- */
+const SCREENS={
+home(){
+  const [st,sub]=statusText();const active=S.run;
+  return `<div class="body" style="padding-top:8px">
+    <div><p class="eyebrow">My home · 4 devices</p><p class="greet">Good afternoon 👋</p></div>
+    <div class="devices">
+      <button class="dev hero" data-action="go" data-to="device">
+        <span class="ico">${robotIcon(34,false,mood())}</span>
+        <span><b>Robot Vacuum</b><small><span class="dot"></span><span data-live="homestatus">${active?st+' · '+Math.round(active.progress*100)+'%':st}</span></small><small>${battHTML()}</small></span>
+        <span class="chev">›</span>
+      </button>
+      ${devCard('Thermostat','21 °C · heating','🌡️')}
+      ${devCard('Music player','Paused','🎵')}
+      ${devCard('TV screen','Off','📺',true)}
+    </div>
+    <p class="hint">Only the robot vacuum is wired up in this prototype. The other cards are placeholders.</p>
+  </div>`;
+},
+device(){
+  const [st,sub]=statusText(),r=S.run,cleaningish=['cleaning','paused','awaiting','returning'].includes(S.robot)&&r;
+  const lr=S.lastRun;const low=S.robot==='docked'&&pct()<20;
+  let actions;
+  if(cleaningish)actions=`<button class="btn" data-action="go" data-to="cleaning">View cleaning on map</button>`;
+  else if(S.robot==='idle')actions=`<button class="btn" data-action="newclean">Start a new clean</button><button class="btn ghost" data-action="senddock">Send back to dock</button>`;
+  else if(S.robot==='returning')actions=`<button class="btn" disabled>Returning to dock…</button>`;
+  else actions=`<button class="btn" data-action="newclean" ${low?'disabled':''}>${low?'Charging. Ready at 20%':'Start cleaning'}</button>`;
+  if(lr&&!cleaningish)actions+=`<button class="btn ghost" data-action="go" data-to="complete">See last clean summary</button>`;
+  return `${bar('Robot Vacuum',`<span style="margin-left:auto">${battHTML()}</span>`)}
+  <div class="body">
+    <div class="hero-robot">${robotIcon(180,S.robot==='cleaning',mood())}</div>
+    <p class="state" data-live="state">${st}</p><p class="state-sub" data-live="sub">${sub}</p>
+    <div class="facts">
+      <div><span>🗓️ Last clean</span><b>${lr?'Today':'Yesterday'}</b></div>
+      <div><span>🗑️ Dust bin</span><b>${lr?'64% full':'40% full'}</b></div>
+      <div><span>🗺️ Map</span><b>4 rooms · 70 m²</b></div>
+    </div>
+  </div>
+  <div class="foot">${actions}</div>`;
+},
+mode(){
+  const ids=Object.keys(MODES),m=MODES[S.mode];
+  const next=!m?'Choose a mode':m.area==='rooms'?'Next: pick rooms':m.area==='spot'?'Next: tap the spot':'Next: review';
+  return `${bar('Choose cleaning mode')}
+  <div class="body modes" role="radiogroup" aria-label="Cleaning mode">
+    ${ids.map(id=>{const md=MODES[id],e=estFor(id);return `<button class="opt" role="radio" aria-checked="${S.mode===id}" data-action="mode" data-id="${id}">
+      <span class="emo">${md.emoji}</span><span><b>${md.name}</b><small>${md.desc}</small></span><span class="est">${e?'~'+e+' min':'varies'}</span><span class="radio"></span></button>`}).join('')}
+    <p class="hint">⚡✨ cover the whole home, so they skip picking rooms.</p>
+  </div>
+  <div class="foot"><button class="btn" data-action="modenext" ${m?'':'disabled'}>${next}</button></div>`;
+},
+area(){
+  const isSpot=MODES[S.mode].area==='spot',p=plan();
+  if(isSpot)return `${bar('Select spot')}
+  <div class="body"><p class="hint">Tap where the mess is. The robot cleans a 1.5 m circle around it.</p>
+    <div class="map">${mapSVG({pick:'spot',spot:S.spot,id:'pickmap'})}</div>
+    ${S.spot?`<div class="note good"><b>🎯 Spot set in the ${room(S.spot.room).name.toLowerCase()}</b>Tap somewhere else to move it.</div>`:''}
+  </div>
+  <div class="foot"><button class="btn" data-action="go" data-to="review" ${S.spot?'':'disabled'}>Next: review</button></div>`;
+  const all=S.rooms.length===ROOMS.length;
+  return `${bar('Select area')}
+  <div class="body"><p class="hint">Tap rooms on the map or below. You can pick more than one.</p>
+    <div class="map">${mapSVG({pick:'rooms',selected:S.rooms,id:'pickmap'})}</div>
+    <div class="chips">${ROOMS.map(r=>`<button class="chip" aria-pressed="${S.rooms.includes(r.id)}" data-action="room" data-id="${r.id}">${r.emoji} ${r.name} · ${r.m2} m²</button>`).join('')}
+      <button class="chip link" data-action="allrooms">${all?'Clear all':'Select all'}</button></div>
+  </div>
+  <div class="foot"><button class="btn" data-action="go" data-to="review" ${S.rooms.length?'':'disabled'}>${S.rooms.length?`Next: review (${S.rooms.length} room${S.rooms.length>1?'s':''} · ${p.m2} m²)`:'Pick at least one room'}</button></div>`;
+},
+review(){
+  const p=plan(),m=MODES[S.mode],path=buildPath(p);
+  const areaLabel=m.area==='spot'?`Spot in ${room(S.spot.room).name.toLowerCase()}`:m.area==='rooms'?p.rooms.map(id=>room(id).name).join(', '):'Whole home';
+  const have=pct();
+  let note;
+  if(!p.ok)note=`<div class="note bad"><b>🪫 Not enough battery for this plan</b>It needs about ${p.need}% and the robot has ${have}%. Switch to Eco, pick fewer rooms, or let it charge first.</div>`;
+  else if(have-p.need<15)note=`<div class="note warn"><b>⚠️ Battery will be close</b>About ${have-p.need+RESERVE}% left when it finishes. It returns to the dock on its own if it runs low.</div>`;
+  else note=`<div class="note good"><b>🔋 Battery is enough</b>About ${have-p.need+RESERVE}% left when it finishes.</div>`;
+  return `${bar('Review and start')}
+  <div class="body">
+    <div class="map">${mapSVG({include:p.rooms,ghost:path,spot:m.area==='spot'?S.spot:null,id:'revmap'})}</div>
+    <div class="sum">
+      <div><span>Mode</span><b>${m.emoji} ${m.name}<button class="edit" data-action="go" data-to="mode">Edit</button></b></div>
+      <div><span>Area</span><b>${areaLabel}${m.area?'<button class="edit" data-action="go" data-to="area">Edit</button>':''}</b></div>
+      <div><span>⏱️ Estimated time</span><b>${p.est} min · ${p.m2} m²</b></div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <p class="eyebrow">Suction power</p>
+      <div class="seg" role="group" aria-label="Suction power">${Object.entries(SUCTION).map(([k,v])=>`<button aria-pressed="${S.suction===k}" data-action="suction" data-id="${k}">${v.label}</button>`).join('')}</div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <div class="prog-top"><span>Battery needed vs. available</span><b>${p.need}% / ${have}%</b></div>
+      <div class="meter"><i style="width:${have}%"></i><i class="need" style="width:${Math.min(100,p.need)}%"></i></div>
+    </div>
+    ${note}
+  </div>
+  <div class="foot"><button class="btn" data-action="start" ${p.ok&&S.robot!=='returning'?'':'disabled'}>Start cleaning</button></div>`;
+},
+cleaning(){
+  const r=S.run;if(!r){S.screen=S.lastRun?'complete':'device';return SCREENS[S.screen]()}
+  const [st]=statusText();const paused=S.robot==='paused'||S.robot==='awaiting',returning=S.robot==='returning';
+  const ctrls=S.stopConfirm?`<div class="note bad" style="display:flex;flex-direction:column;gap:10px"><span><b>🛑 End this clean?</b>The robot stops where it is. You can send it to the dock afterwards.</span>
+      <div class="row"><button class="btn ghost" data-action="stopcancel">Keep cleaning</button><button class="btn danger" data-action="stopyes">Stop</button></div></div>`
+    :`<div class="ctrls">
+      <button class="ctrl primary" data-action="pause" ${returning||S.robot==='awaiting'?'disabled':''}><span class="ci">${paused?'▶️':'⏸️'}</span>${paused?'Resume':'Pause'}</button>
+      <button class="ctrl stop" data-action="stop" ${returning?'disabled':''}><span class="ci">⏹️</span>Stop</button>
+      <button class="ctrl" data-action="dock" ${returning?'disabled':''}><span class="ci">🏠</span>Return to dock</button>
+    </div>`;
+  return `${bar('Cleaning',`<span class="pill ${S.robot}">${{cleaning:'🧹 Cleaning',paused:'⏸️ Paused',awaiting:'🤔 Waiting',returning:'🏠 Returning'}[S.robot]}</span>`)}
+  <div class="body">
+    <div class="map">${mapSVG({include:r.rooms,run:r,robot:true,id:'livemap'})}</div>
+    <div class="prog">
+      <div class="prog-top"><b data-live="state">${st}</b><span data-live="pct">${Math.round(r.progress*100)}%</span></div>
+      <div class="meter"><i data-live="progw" style="width:${r.progress*100}%"></i></div>
+    </div>
+    <div class="stats">
+      <div class="stat"><span>⏱️ Time</span><b data-live="time">${fmtMin(r.progress*r.est)}</b><em>/ ${r.est} min</em></div>
+      <div class="stat"><span>📐 Area</span><b data-live="area">${(r.progress*r.m2).toFixed(1)}</b><em>m²</em></div>
+      <div class="stat"><span>🔋 Battery</span><b data-live="batt">${pct()}</b><em>%</em></div>
+    </div>
+    ${r.hazard?.choice==='avoid'?`<p class="hint">🚧 Avoiding 1 spot: the 🍷 near the sofa.</p>`:''}
+  </div>
+  <div class="foot">${ctrls}</div>`;
+},
+complete(){
+  const r=S.lastRun;if(!r){S.screen='device';return SCREENS.device()}
+  const titles={finished:'Cleaning complete',returned:'Sent back early',stopped:'Cleaning stopped',lowbattery:'Paused for charging'};
+  const full=r.end==='finished';
+  const lastIdx=id=>r.path.roomOf.lastIndexOf(id),cur=idxAt(r.path,r.progress);
+  const used=Math.max(0,Math.round(r.battStart-r.battEnd));
+  return `${bar('Summary')}
+  <div class="body">
+    <div class="done-head"><div class="done-ico ${full?'':'part'}">${full?'🎉':{stopped:'✋',returned:'🏠',lowbattery:'🪫'}[r.end]}</div>
+      <div><h2>${titles[r.end]}</h2><p class="hint">${MODES[r.mode].name} · ${SUCTION[r.suction].label} suction</p></div></div>
+    <div class="map">${mapSVG({include:r.rooms,run:r,spot:MODES[r.mode].area==='spot'?S.spot:null,id:'summap'})}</div>
+    <div class="stats">
+      <div class="stat"><span>⏱️ Time</span><b>${fmtMin(r.progress*r.est)}</b><em>min</em></div>
+      <div class="stat"><span>📐 Area</span><b>${(r.progress*r.m2).toFixed(1)}</b><em>m²</em></div>
+      <div class="stat"><span>🔋 Used</span><b>${used}</b><em>%</em></div>
+    </div>
+    <div class="chips">${r.rooms.map(id=>{const done=cur>=lastIdx(id)||r.finished;return `<span class="chip rc ${done?'ok':'part'}">${done?'✅':'⏳'} ${room(id).emoji} ${room(id).name}</span>`}).join('')}</div>
+    ${r.hazard?.choice==='avoid'?`<div class="note warn"><b>🍷 Check the living room</b>The robot cleaned around a glass near the sofa. Pick it up, then run a Spot clean there.</div>`:''}
+    ${r.end==='lowbattery'?`<div class="note warn"><b>🪫 Battery ran low</b>The robot went back to charge. Start a Room clean for the unfinished rooms once it's above 20%.</div>`:''}
+  </div>
+  <div class="foot">${S.robot==='idle'?'<button class="btn" data-action="senddock">Send back to dock</button>':''}<button class="btn ${S.robot==='idle'?'ghost':''}" data-action="go" data-to="device">Done</button></div>`;
+},
+};
+function devCard(name,status,emoji,off){return `<button class="dev" data-action="placeholder" data-name="${name}"><span class="ico"><span class="emo">${emoji}</span></span><span><b>${name}</b><small><span class="dot ${off?'off':''}"></span>Online · ${status}</small></span></button>`}
+function mood(){return S.robot==='docked'?(S.battery<100?'sleep':'happy'):S.robot==='awaiting'?'worried':S.robot==='paused'||S.robot==='idle'?'meh':'happy'}
+function faceSVG(m){
+  const eyes=m==='sleep'?'<path d="M30 48q6 5 12 0M58 48q6 5 12 0" fill="none" stroke="#111827" stroke-width="3.2" stroke-linecap="round"/>'
+    :'<ellipse cx="36" cy="47" rx="7" ry="8.5" fill="#fff" stroke="#111827" stroke-width="2.5"/><ellipse cx="64" cy="47" rx="7" ry="8.5" fill="#fff" stroke="#111827" stroke-width="2.5"/><circle cx="'+(m==='worried'?35:37)+'" cy="49" r="3.6" fill="#111827"/><circle cx="'+(m==='worried'?63:65)+'" cy="49" r="3.6" fill="#111827"/>';
+  const brows=m==='worried'?'<path d="M28 35l12 4M72 35l-12 4" stroke="#111827" stroke-width="3" stroke-linecap="round"/>':'';
+  const mouth=m==='happy'?'<path d="M40 63q10 10 20 0" fill="#E85D4A" stroke="#111827" stroke-width="2.8" stroke-linejoin="round"/>'
+    :m==='worried'?'<path d="M42 68q8 -7 16 0" fill="none" stroke="#111827" stroke-width="2.8" stroke-linecap="round"/>'
+    :m==='sleep'?'<ellipse cx="50" cy="65" rx="4" ry="3" fill="#111827"/>':'<path d="M42 65h16" stroke="#111827" stroke-width="2.8" stroke-linecap="round"/>';
+  const cheeks='<ellipse cx="24" cy="60" rx="6" ry="3.5" fill="#FF8A80" opacity=".7"/><ellipse cx="76" cy="60" rx="6" ry="3.5" fill="#FF8A80" opacity=".7"/>';
+  return eyes+brows+cheeks+mouth;
+}
+function miniFace(){const m=mood();return m==='sleep'?'<path d="M-5 -1.5q2 1.6 4 0M1 -1.5q2 1.6 4 0" fill="none" stroke="#111827" stroke-width="1.2" stroke-linecap="round"/>':'<circle class="face-eye" cx="-3" cy="-2" r="1.4"/><circle class="face-eye" cx="3" cy="-2" r="1.4"/>'+(m==='worried'?'<path d="M-2.5 4q2.5 -2 5 0" fill="none" stroke="#111827" stroke-width="1.1"/>':'<path d="M-3 2.5q3 3 6 0" fill="none" stroke="#111827" stroke-width="1.1"/>')}
+function robotIcon(sz,spin,m='happy'){return `<svg width="${sz}" height="${sz}" viewBox="0 0 100 100" aria-hidden="true" overflow="visible"><g class="${m==='happy'||m==='sleep'?'bob':''}"><circle cx="50" cy="52" r="44" fill="var(--accent-hi)" stroke="#111827" stroke-width="3"/><path d="M16 34a40 40 0 0 1 68 0" fill="none" stroke="#111827" stroke-width="3" stroke-linecap="round" opacity=".35"/><path d="M50 8v-6" stroke="#111827" stroke-width="3" stroke-linecap="round"/><circle cx="50" cy="0" r="4" fill="#FF9D00" stroke="#111827" stroke-width="2"/>${faceSVG(m)}<g class="${spin?'spin':''}"><path d="M20 82l-9 4M20 82l4-9M20 82l9-4" stroke="#111827" stroke-width="2.6" stroke-linecap="round"/></g><g class="${spin?'spin':''}"><path d="M80 82l9 4M80 82l-4-9M80 82l-9-4" stroke="#111827" stroke-width="2.6" stroke-linecap="round"/></g></g>${m==='sleep'?'<text class="zzz" x="84" y="14" font-size="16">z</text>':''}</svg>`}
+
+/* ---------- render ---------- */
+const view=document.getElementById('view'),overlay=document.getElementById('overlay');
+function render(){
+  view.innerHTML=SCREENS[S.screen]();
+  // overlays: hazard prompt or banner
+  const r=S.run;
+  if(S.robot==='awaiting'&&r){
+    overlay.innerHTML=S.screen==='cleaning'?`<div class="scrim"><div class="sheet" role="dialog" aria-modal="true" aria-labelledby="hz">
+      <div class="big-emo">🍷</div><p class="eyebrow" style="color:var(--warn);text-align:center">Robot paused · living room</p>
+      <h2 id="hz">There's a glass on the floor near the sofa</h2>
+      <p>The robot stopped 20 cm away. Driving into it could knock it over, and broken glass would damage the brush.</p>
+      <button class="btn" data-action="haz" data-id="avoid">Clean around it</button>
+      <button class="btn ghost" data-action="haz" data-id="moved">I picked it up, continue</button></div></div>`
+    :`<button class="banner" data-action="go" data-to="cleaning"><span style="font-size:26px">🍷</span><span><b>Robot needs your input</b>It found a glass on the floor. Tap to decide.</span></button>`;
+  }else overlay.innerHTML='';
+  renderPanel();
+  const pick=document.getElementById('pickmap');
+  if(pick&&MODES[S.mode]?.area==='spot')pick.addEventListener('click',e=>{const pt=pick.createSVGPoint();pt.x=e.clientX;pt.y=e.clientY;const p=pt.matrixTransform(pick.getScreenCTM().inverse());const rm=curRoomAt(p);if(!rm)return;S.spot={x:Math.round(p.x),y:Math.round(p.y),room:rm.id};render()});
+}
+function live(){
+  const r=S.run,sec=Math.floor(performance.now()/250);if(sec===lastSec)return;lastSec=sec;
+  const [st,sub]=statusText();
+  const set=(k,v)=>document.querySelectorAll(`[data-live="${k}"]`).forEach(el=>{if(el.textContent!==String(v))el.textContent=v});
+  set('batt',pct());document.querySelectorAll('[data-live="battw"]').forEach(el=>el.style.width=pct()+'%');
+  set('state',st);set('sub',sub);set('homestatus',r?st+' · '+Math.round(r.progress*100)+'%':st);
+  if(r){set('pct',Math.round(r.progress*100)+'%');set('time',fmtMin(r.progress*r.est));set('area',(r.progress*r.m2).toFixed(1));
+    const pw=document.querySelector('[data-live="progw"]');if(pw)pw.style.width=r.progress*100+'%';
+    const tr=document.getElementById('trail');if(tr)tr.setAttribute('points',trailPts(r));}
+  const bot=document.getElementById('bot');if(bot)bot.setAttribute('transform',`translate(${S.pos.x.toFixed(1)},${S.pos.y.toFixed(1)})`);
+}
+// robot position updates every frame for smooth motion
+(function smooth(){const bot=document.getElementById('bot');if(bot)bot.setAttribute('transform',`translate(${S.pos.x.toFixed(1)},${S.pos.y.toFixed(1)})`);requestAnimationFrame(smooth)})();
+
+/* ---------- side panel ---------- */
+const FLOW=[
+  {s:'home',fr:'Frame 1',name:'Home'},
+  {s:'device',fr:'Frame 2',name:'Device control'},
+  {s:'mode',fr:'Frame 3',name:'Choose cleaning mode'},
+  {s:'area',fr:'Frame 4',name:'Select area',tag:'only Room / Spot'},
+  {s:'review',fr:'Frame 7',name:'Review and start',tag:'new',cls:'new'},
+  {s:'cleaning',fr:'Frame 5+6',name:'Cleaning + controls',tag:'merged',cls:'merged'},
+  {s:'complete',fr:'Frame 8',name:'Summary',tag:'new',cls:'new'},
+];
+const NOTES={
+  home:{from:'Sketch: a list of four devices, each "online".',add:['The vacuum card shows live status and battery, so you can check on a clean without opening it.','Only the vacuum is clickable; the other devices show a short message.']},
+  device:{from:'Sketch: battery at 80%, "Ready to clean", a Start button.',add:['Start opens the mode picker instead of starting a clean with no settings.','The status line follows the robot: charging, cleaning, paused, returning, stopped.','Start is disabled below 20% battery. Going back during a clean keeps it running.']},
+  mode:{from:'Sketch: four modes as radio buttons.',add:['Each mode says what it covers and roughly how long it takes.','Quick and Full skip area selection because they clean everything.','The button tells you the next step ("Next: pick rooms").']},
+  area:{from:'Sketch: floor plan with bedroom, living room, kitchen, office.',add:['Room clean: tap rooms on the map or the chips. Pick more than one.','Spot clean: tap anywhere to drop a cleaning circle.','Next stays disabled until there is something to clean.']},
+  review:{from:'Blank frame 7 in the sketch.',add:['A last check before the robot moves: the path preview, time estimate and suction power.','Battery check: the plan is blocked if the battery can\'t finish it, with a suggested fix.']},
+  cleaning:{from:'Sketch: live map with time and area (frame 5). Pause, Stop, Return to dock on a separate screen (frame 6).',add:['Controls sit under the map, so you never leave the map to pause.','Pause becomes Resume. Stop asks to confirm. Return to dock drives home and ends the run.','From the team\'s bad-scenario storyboard: the robot stops at a glass and asks what to do.','Battery drains as it cleans. If it gets low, the robot goes back to charge.']},
+  complete:{from:'Blank frame 8 in the sketch.',add:['Closes the loop: time, area, battery used, and which rooms were finished.','Calls out anything to check, like the glass it avoided.']},
+};
+function renderPanel(){
+  const skipArea=S.mode&&!MODES[S.mode].area;
+  document.getElementById('flow').innerHTML=FLOW.map(f=>`<li class="${f.s===S.screen?'cur':''} ${f.s==='area'&&skipArea?'skip':''}"><span class="fr">${f.fr}</span><b>${f.name}</b><span class="tag ${f.cls||''}">${f.s==='area'&&skipArea?'skipped':f.tag||''}</span></li>`).join('');
+  const n=NOTES[S.screen];
+  document.getElementById('notes').innerHTML=`<p class="eyebrow">This screen</p><h2>${FLOW.find(f=>f.s===S.screen).name}</h2><p class="from">${n.from}</p><ul>${n.add.map(a=>`<li>${a}</li>`).join('')}</ul>`;
+}
+
+/* ---------- navigation + actions ---------- */
+function go(s){S.screen=s;S.stopConfirm=false;render();view.scrollTop=0}
+function confetti(){const c=document.createElement('div');c.className='confetti';const em=['🎉','✨','🧹','⭐','🤗','🟡'];c.innerHTML=Array.from({length:22},(_,i)=>`<span style="left:${Math.random()*95}%;animation-delay:${Math.random()*.6}s">${em[i%em.length]}</span>`).join('');document.getElementById('screen').appendChild(c);setTimeout(()=>c.remove(),3200)}
+const BACK={device:'home',mode:'device',area:'mode',review:()=>MODES[S.mode].area?'area':'mode',cleaning:'device',complete:'device'};
+let tt;function toast(m){const t=document.getElementById('toast');t.textContent=m;t.classList.add('show');clearTimeout(tt);tt=setTimeout(()=>t.classList.remove('show'),2400)}
+document.addEventListener('click',e=>{
+  const rm=e.target.closest('rect.pick[data-room]');
+  if(rm&&MODES[S.mode]?.area==='rooms'){toggleRoom(rm.dataset.room);return}
+  const b=e.target.closest('[data-action]');if(!b)return;const a=b.dataset.action,id=b.dataset.id;
+  switch(a){
+    case 'go':go(b.dataset.to);break;
+    case 'back':{const t=BACK[S.screen];go(typeof t==='function'?t():t);break}
+    case 'placeholder':toast(`🙈 ${b.dataset.name} isn't part of this prototype`);break;
+    case 'newclean':S.mode=null;S.rooms=[];S.spot=null;go('mode');break;
+    case 'mode':S.mode=id;render();break;
+    case 'modenext':go(MODES[S.mode].area?'area':'review');break;
+    case 'room':toggleRoom(id);break;
+    case 'allrooms':S.rooms=S.rooms.length===ROOMS.length?[]:ROOMS.map(r=>r.id);render();break;
+    case 'suction':S.suction=id;render();break;
+    case 'start':startRun();break;
+    case 'pause':S.robot=S.robot==='paused'?'cleaning':'paused';toast(S.robot==='paused'?'⏸️ Paused':'▶️ Back to work');render();break;
+    case 'stop':S.stopConfirm=true;render();break;
+    case 'stopcancel':S.stopConfirm=false;render();break;
+    case 'stopyes':S.robot='idle';endRun('stopped');go('complete');break;
+    case 'dock':S.robot='returning';toast('🏠 Heading home');render();break;
+    case 'senddock':S.robot='returning';toast('Heading to the dock');render();break;
+    case 'haz':S.run.hazard.choice=id;S.robot='cleaning';toast(id==='avoid'?'🚧 Cleaning around the glass':'👍 Continuing');render();break;
+    case 'reset':S=fresh();go('home');break;
+    case 'drain':if(S.run){toast('Finish or stop the current clean first');break}S.battery=25;toast('Battery set to 25%');render();break;
+  }
+});
+document.addEventListener('keydown',e=>{if((e.key==='Enter'||e.key===' ')&&e.target.matches('rect.pick[data-room]')){e.preventDefault();toggleRoom(e.target.dataset.room)}});
+function toggleRoom(id){S.rooms=S.rooms.includes(id)?S.rooms.filter(x=>x!==id):[...S.rooms,id];render()}
+
+function clock(){const d=new Date();document.getElementById('clock').textContent=d.getHours()+':'+String(d.getMinutes()).padStart(2,'0')}
+clock();setInterval(clock,30000);
+render();requestAnimationFrame(tick);
+</script>
